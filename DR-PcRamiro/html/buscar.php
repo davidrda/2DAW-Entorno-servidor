@@ -1,7 +1,7 @@
 <?php
 
-       require_once "datos.php"; 
-       require_once "funciones.php"; 
+       require_once __DIR__ . "/../php/datos.php"; 
+       require_once __DIR__ . "/../php/funciones.php"; 
 
 
 
@@ -19,7 +19,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buscar - DWES Store</title>
-    <link rel="stylesheet" href="estilos.css">
+    <link rel="stylesheet" href="css/estilos.css">
 </head>
 
 <body>

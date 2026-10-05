@@ -1,64 +1,65 @@
 <?php
 
-// ======================================================
-// 1. CARGAMOS LOS ARCHIVOS PHP NECESARIOS
-// ======================================================
+require_once __DIR__ . "/../php/funciones.php";
+require_once __DIR__ . "/../php/datos.php";
 
-// require_once carga y ejecuta el archivo indicado.
-//
-// "once" significa que, aunque intentemos incluir el mismo
-// archivo varias veces, PHP solamente lo cargará una vez.
-//
-// funciones.php contendrá las funciones de nuestra aplicación.
-// Por ejemplo:
-//
-// function formatearPrecio($precio) {
-//     ...
-// }
-require_once "funciones.php";
+// Criterio de orden por GET: index.php?orden=nombre|precio|id
+// Dato del usuario → lo leemos con leerCadena(), nunca con $_GET directo
+$orden = leerCadena($_GET, "orden");
 
+if ($orden === "") {
+    $orden = "id"; // orden por defecto
+}
 
-// datos.php contendrá los datos de nuestra aplicación.
-//
-// Por ejemplo, podría contener un array:
-//
-// $productos = [
-//     ...
-// ];
-require_once "datos.php";
+// Ordenamos una copia para no tocar los datos originales
+$productosOrdenados = $productos;
+
+// usort() ordena con nuestra función de comparación.
+// <=> devuelve negativo / 0 / positivo según $a sea menor / igual / mayor que $b
+if ($orden === "nombre") {
+
+    usort($productosOrdenados, function (array $a, array $b): int {
+        return $a["nombre"] <=> $b["nombre"];
+    });
+
+} elseif ($orden === "precio") {
+
+    usort($productosOrdenados, function (array $a, array $b): int {
+        return $a["precio"] <=> $b["precio"];
+    });
+
+} else {
+
+    // Cualquier valor desconocido (?orden=patata) acaba ordenando por id
+    $orden = "id";
+
+    usort($productosOrdenados, function (array $a, array $b): int {
+        return $a["id"] <=> $b["id"];
+    });
+}
+
+// Ojo: abajo se recorre $productosOrdenados, no $productos
 
 ?>
 
 <!DOCTYPE html>
 
-<!--
-    A partir de aquí tenemos principalmente HTML.
-
-    PHP se ejecuta EN EL SERVIDOR.
-
-    El navegador NO recibe este código PHP.
-    El navegador recibirá únicamente el HTML generado.
--->
 <html lang="es">
 
 <head>
 
-    <!-- Codificación de caracteres -->
     <meta charset="UTF-8">
 
-    <!-- Adaptación a dispositivos móviles -->
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
 
-    <!-- Título mostrado en la pestaña del navegador -->
     <title>DWES Store</title>
 
-    <!-- Hoja de estilos CSS externa -->
     <link
         rel="stylesheet"
-        href="estilos.css"
+        href="css/estilos.css"
     >
 
 </head>
@@ -66,10 +67,6 @@ require_once "datos.php";
 
 <body>
 
-
-<!-- ==================================================
-     CABECERA DE LA PÁGINA
-     ================================================== -->
 
 <header class="cabecera">
 
@@ -79,13 +76,6 @@ require_once "datos.php";
 
         <p>Versión estática en HTML y CSS</p>
 
-
-        <!--
-            Menú de navegación.
-
-            Cada enlace realizará una nueva petición
-            HTTP al servidor.
-        -->
         <nav class="navegacion">
 
             <a href="index.php">
@@ -107,185 +97,69 @@ require_once "datos.php";
 </header>
 
 
-
-<!-- ==================================================
-     CONTENIDO PRINCIPAL
-     ================================================== -->
-
 <main class="contenedor">
 
-
-    <!-- Título de la sección -->
     <section class="panel">
 
         <h2>Catálogo</h2>
+        <p>Orden actual:  </p>
+        <nav class="navegacion">
+            <a href="index.php?orden=id">Por id</a>
+            <a href="index.php?orden=nombre">Por Nombre</a>
+            <a href="index.php?orden=precio">Por Precio</a>
+        </nav>
 
     </section>
 
 
-
-    <!-- ==================================================
-         CATÁLOGO DE PRODUCTOS
-         ================================================== -->
-
     <section class="grid-productos">
 
-
         <?php
-
-        // Recorremos el array $productos.
-        //
-        // En cada iteración, $producto contendrá
-        // uno de los productos del array.
-        //
-        // Si tenemos:
-        //
-        // $productos = [
-        //     ["nombre" => "Teclado", ...],
-        //     ["nombre" => "Ratón", ...],
-        //     ["nombre" => "Monitor", ...]
-        // ];
-        //
-        // foreach realizará 3 iteraciones.
-        //
-        // Primera:
-        // $producto → Teclado
-        //
-        // Segunda:
-        // $producto → Ratón
-        //
-        // Tercera:
-        // $producto → Monitor
-
-        foreach ($productos as $producto) {
-
+        // Un <article> por cada producto
+        foreach ($productosOrdenados as $producto) {
         ?>
 
-
-            <!--
-                Este <article> se generará una vez
-                por cada producto existente en el array.
-            -->
             <article class="producto">
 
-
-                <!-- ==============================
-                     NOMBRE DEL PRODUCTO
-                     ============================== -->
-
                 <h2>
-
-                    <?=
-                        // <?= es una forma abreviada de:
-                        //
-                        // <?php echo ...;
-                        //
-                        // Mostramos el nombre del producto.
-                        $producto["nombre"]
-                    ?>
-
+                    <?= $producto["nombre"] ?>
                 </h2>
 
-
-
-                <!-- ==============================
-                     CATEGORÍA
-                     ============================== -->
-
                 <p>
-
                     Categoria:
-
-                    <?=
-                        // Accedemos al valor asociado
-                        // a la clave "categoria".
-                        $producto["categoria"]
-                    ?>
-
+                    <?= $producto["categoria"] ?>
                 </p>
-
-
-
-                <!-- ==============================
-                     PRECIO
-                     ============================== -->
 
                 <p class="precio">
-
-                    <?=
-                        // Llamamos a nuestra función
-                        // formatearPrecio().
-                        //
-                        // Le pasamos como argumento
-                        // el precio del producto.
-                        //
-                        // Por ejemplo:
-                        //
-                        // 29.9
-                        //
-                        // podría convertirse en:
-                        //
-                        // 29,90 €
-
-                        formatearPrecio(
-                            $producto["precio"]
-                        )
-                    ?>
-
+                    <?= formatearPrecio($producto["precio"]) ?>
                 </p>
-
-
-
-                <!-- ==============================
-                     STOCK
-                     ============================== -->
 
                 <p>
-
                     Stock:
-
-                    <?=
-                        // Mostramos el stock disponible.
-                        $producto["stock"]
-                    ?>
-
+                    <?= $producto["stock"] ?>
                 </p>
 
+                <!-- La clase CSS (agotado/aviso/disponible) depende del stock -->
                 <p class="estado <?= obtenerClaseEstado($producto["stock"]); ?>">
-
-
 
                     Estado:
 
-                    <?=
-                        // Mostramos el stock disponible.
-                        obtenerEstadoStock($producto["stock"]);
-                    ?>
+                    <?= obtenerEstadoStock($producto["stock"]); ?>
 
                 </p>
 
+                <a class="boton" href="producto.php?id= <?= $producto["id"] ?> " >Ver Producto</a>
 
             </article>
 
-
         <?php
-
-        // Cerramos el bloque correspondiente
-        // al foreach.
         }
-
         ?>
-
 
     </section>
 
 </main>
 
-
-
-<!-- ==================================================
-     PIE DE PÁGINA
-     ================================================== -->
 
 <footer class="pie">
 
