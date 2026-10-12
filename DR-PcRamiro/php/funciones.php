@@ -68,10 +68,10 @@ function buscarProductoPorId(array $productos, int $id): ?array
 // Prepara un texto para comparar: sin espacios en los extremos y en minúsculas
 function normalizarTexto(string $texto): string
 {
-    $texto = trim($texto);
+    $textoNormalizado = trim($texto);
 
     // strtolower no trata bien tildes/ñ; mb_strtolower($texto, "UTF-8") sí
-    return strtolower($texto);
+    return strtolower($textoNormalizado);
 }
 
 // Devuelve los productos cuyo nombre contiene el texto buscado

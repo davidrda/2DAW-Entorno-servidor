@@ -1,33 +1,44 @@
 <?php
 
-// Detalle de un producto: producto.php?id=2
-// Flujo: $_GET["id"] → validar entero → buscar producto
-//   id inválido      → 400 Bad Request
-//   id no existente  → 404 Not Found
+/*
+ * DETALLE DE UN PRODUCTO
+ * Recibe el id por GET (producto.php?id=2), lo valida y muestra la ficha.
+ *
+ * Flujo:
+ *   id inválido (hola, -5)        -> HTTP 400 Bad Request
+ *   id válido pero no existe (999) -> HTTP 404 Not Found
+ *   id válido y existe             -> se muestra el producto
+ */
 
-require_once __DIR__ . "/../php/datos.php";      // array $productos
-require_once __DIR__ . "/../php/funciones.php";  // buscarProductoPorId(), etc.
+// datos.php: array $productos | funciones.php: buscarProductoPorId(), escapar()...
+// require_once: son imprescindibles y solo se cargan una vez.
+require_once "datos.php";
+require_once "funciones.php";
 
-// Dato externo sin validar (?? evita warning si no viene "id")
+// Dato externo sin validar (por eso "bruto"). ?? evita error si no existe "id".
 $idBruto = $_GET["id"] ?? "";
 
-// Devuelve el int si es válido, o false si no lo es ("hola")
+// Devuelve un int si es un entero válido, o false si no lo es.
 $id = filter_var($idBruto, FILTER_VALIDATE_INT);
 
-$producto = null;
-$error = "";
+$producto = null; // null = todavía no hay producto
+$error = "";      // vacío = todavía no hay error
 
-// === false: comparación estricta, porque 0 también se evaluaría como "falso"
+// Inválido: no es un entero o es menor que 1.
 if ($id === false || $id < 1) {
-    http_response_code(400);
+
+    http_response_code(400); // Bad Request
     $error = "El id de producto no es válido";
 
 } else {
-    // Formato correcto: ahora comprobamos si existe (array o null)
+
+    // Devuelve un array si lo encuentra, o null si no existe.
     $producto = buscarProductoPorId($productos, $id);
 
+    // ID con formato válido, pero sin producto asociado.
     if ($producto === null) {
-        http_response_code(404);
+
+        http_response_code(404); // Not Found
         $error = "El producto no existe";
     }
 }
@@ -35,7 +46,6 @@ if ($id === false || $id < 1) {
 ?>
 
 
-<!-- HTML -->
 
 <!DOCTYPE html>
 <html lang="es">
@@ -43,7 +53,7 @@ if ($id === false || $id < 1) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Producto - DWES Store</title>
-    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="estilos.css">
 </head>
 
 <body>
@@ -59,31 +69,81 @@ if ($id === false || $id < 1) {
         </nav>
     </div>
 </header>
-
 <main class="contenedor">
 
-    <article class="producto">
+    <?php
+    /*
+     * Solo se muestra uno de los dos bloques: error o producto.
+     * Usamos la sintaxis alternativa (if: / else: / endif;), más cómoda
+     * al mezclar PHP con HTML.
+     */
+    ?>
 
-        <h2>Teclado mecánico</h2>
+    <?php if ($error !== ""): ?>
 
-        <p>Categoría: Periféricos</p>
+        <!-- CASO 1: hay un error -->
+        <section class="panel">
 
-        <p class="precio">79,90 €</p>
+            <h2>Error</h2>
 
-        <p>Stock: 7</p>
+            <?php
+            // <?= es la forma corta de echo. Escapamos el texto al sacarlo al HTML
+            // (validar al entrar, escapar al salir).
+            ?>
+            <p><?= escapar($error) ?></p>
 
-        <p>
-            Estado:
-            <span class="estado disponible">Disponible</span>
-        </p>
+            <a class="boton" href="index.php">Volver</a>
 
-        <div class="acciones">
-            <a class="boton" href="compra.php">
-                Comprar
-            </a>
-        </div>
+        </section>
 
-    </article>
+
+    <?php else: ?>
+
+        <!-- CASO 2: sin error, $producto existe -->
+        <article class="producto">
+
+            <?php
+            // Nombre y categoría son texto dinámico: se escapan para que
+            // algo como "Teclado <Pro>" no se interprete como etiqueta HTML.
+            ?>
+            <h2><?= escapar($producto["nombre"]) ?></h2>
+
+            <p>
+                Categoría: <?= escapar($producto["categoria"]) ?>
+            </p>
+
+            <?php
+            // El precio se guarda en céntimos (7990); formatearPrecio() lo muestra como "79,90 €".
+            ?>
+            <p class="precio">
+                <?= formatearPrecio($producto["precio"]) ?>
+            </p>
+
+            <?php
+            // El stock es un número controlado por la app, no hace falta escaparlo.
+            ?>
+            <p>
+                Stock: <?= $producto["stock"] ?>
+            </p>
+
+            <?php
+            /*
+             * PHP no cambia el CSS: solo genera el nombre de la clase
+             * (disponible, aviso...) y el navegador aplica sus estilos.
+             * Texto según stock: 0 "Agotado", 3 "Últimas unidades", 7 "Disponible".
+             */
+            ?>
+            <p class="estado <?= obtenerClaseEstado($producto["stock"]); ?>">
+
+                Estado:
+
+                <?= obtenerEstadoStock($producto["stock"]); ?>
+
+            </p>
+
+        </article>
+
+    <?php endif; ?>
 
 </main>
 
