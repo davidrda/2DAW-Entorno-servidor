@@ -2,7 +2,7 @@
 
 Pequeña tienda online de periféricos hecha con **PHP, HTML y CSS** para la asignatura de *Desarrollo Web en Entorno Servidor* (2º DAW).
 
-No usa base de datos: los productos están guardados en un array de PHP. Sirve para aprender lo básico de PHP: variables, arrays, funciones, `foreach`, formularios y peticiones `GET`/`POST`.
+No usa base de datos: los productos están guardados en un array de PHP. Sirve para aprender lo básico de PHP: variables, arrays, funciones, `foreach`, formularios, validación y peticiones `GET`/`POST`.
 
 ---
 
@@ -10,30 +10,41 @@ No usa base de datos: los productos están guardados en un array de PHP. Sirve p
 
 ```
 DR-PcRamiro/
-├── css/
-│   └── estilos.css        → estilos de todas las páginas
 ├── html/
+│   ├── css/
+│   │   └── estilos.css    → estilos de todas las páginas
 │   ├── index.php          → página principal (catálogo)
+│   ├── producto.php       → ficha de un producto
 │   ├── buscar.php         → buscador de productos
 │   └── compra.php         → formulario de compra
 └── php/
     ├── datos.php          → productos y constantes
-    ├── funciones.php      → funciones reutilizables
-    └── producto.php       → ficha de un producto
+    └── funciones.php      → funciones reutilizables
 ```
 
-> **Nota:** las páginas de `html/` cargan `estilos.css`, `datos.php` y `funciones.php` con rutas relativas (`href="estilos.css"`, `require_once "datos.php"`). Para que funcionen hay que tener esos archivos accesibles desde la misma carpeta que la página (o ajustar las rutas).
+> **Nota:** las páginas de `html/` cargan los archivos de `php/` con rutas basadas en `__DIR__` (`require_once __DIR__ . "/../php/datos.php"`). `__DIR__` es la carpeta del propio archivo, así las rutas funcionan se ejecute desde donde se ejecute.
 
 ---
 
 ## Cómo ejecutarlo
 
 1. Tener PHP instalado.
-2. Desde la carpeta del proyecto:
+2. Desde la carpeta del proyecto (`DR-PcRamiro`):
    ```bash
    php -S localhost:8000
    ```
 3. Abrir `http://localhost:8000/html/index.php` en el navegador.
+
+---
+
+## Estado del proyecto
+
+| Página | Estado |
+|---|---|
+| `index.php` | ✅ Funciona: catálogo con orden por id, nombre o precio. |
+| `producto.php` | ⚠️ La lógica (validar id, 400/404) está hecha, pero el HTML aún muestra datos fijos. |
+| `buscar.php` | ⚠️ Solo el formulario; falta leer `q` y llamar a `buscarProductos()`. |
+| `compra.php` | ⚠️ Valida y calcula la compra; falta mostrar los errores y el resumen. |
 
 ---
 
@@ -73,40 +84,48 @@ Productos actuales:
 
 ### `php/funciones.php` — funciones reutilizables
 
-Aquí están las funciones que usan las demás páginas.
+Aquí están las funciones que usan las demás páginas, agrupadas en 4 bloques.
+
+**1. Formato y estado del stock**
 
 | Función | Qué recibe | Qué devuelve | Para qué sirve |
 |---|---|---|---|
-| `formatearPrecio(int $centimos)` | Precio en céntimos | `string` | Convierte `7990` en un texto de precio con formato (euros). |
-| `obtenerEstadoStock(int $stock)` | Unidades en stock | `string` | Devuelve el texto del estado: agotado (`0`), pocas unidades (`≤ 5`) o disponible. |
-| `obtenerClaseEstado(int $stock)` | Unidades en stock | `string` | Devuelve la clase CSS según el stock (para pintar el estado de un color u otro). |
-| `escapar(string $texto)` | Texto | `string` | Protege el texto antes de mostrarlo en HTML (evita inyectar código, XSS). |
-| `buscarProductoPorId(array $productos, int $id)` | Lista y un id | `array` o `null` | Recorre los productos y devuelve el que tenga ese id; si no existe, `null`. |
-| `normalizarTexto(string $texto)` | Texto | `string` | Quita espacios sobrantes y pasa a minúsculas, para buscar sin distinguir mayúsculas. |
-| `buscarProductos(array $productos, string $busqueda)` | Lista y texto | `array` | Devuelve los productos cuyo nombre contiene el texto buscado. Si la búsqueda está vacía, no devuelve resultados. |
+| `formatearPrecio(int $centimos)` | Precio en céntimos | `string` | Convierte `7990` en `"79,90 €"`. |
+| `obtenerEstadoStock(int $stock)` | Unidades en stock | `string` | Texto del estado: `Agotado` (0), `Últimas unidades` (1–5) o `Disponible`. |
+| `obtenerClaseEstado(int $stock)` | Unidades en stock | `string` | Clase CSS según el stock: `agotado`, `aviso` o `disponible`. |
+
+**2. Seguridad y lectura de datos**
+
+| Función | Qué recibe | Qué devuelve | Para qué sirve |
+|---|---|---|---|
+| `escapar(string $texto)` | Texto | `string` | Protege el texto antes de mostrarlo en HTML (evita XSS). |
 | `leerCadena(array $origen, string $clave)` | `$_GET`/`$_POST` y una clave | `string` | Lee un dato de forma segura: si no existe o no es texto, devuelve `""`. |
 
----
+**3. Búsqueda**
 
-### `php/producto.php` — ficha de un producto
+| Función | Qué recibe | Qué devuelve | Para qué sirve |
+|---|---|---|---|
+| `buscarProductoPorId(array $productos, int $id)` | Lista y un id | `array` o `null` | Devuelve el producto con ese id; si no existe, `null`. |
+| `normalizarTexto(string $texto)` | Texto | `string` | Quita espacios sobrantes y pasa a minúsculas, para comparar sin distinguir mayúsculas. |
+| `buscarProductos(array $productos, string $busqueda)` | Lista y texto | `array` | Devuelve los productos cuyo nombre contiene el texto. Búsqueda vacía → sin resultados. |
 
-Página que muestra un producto concreto a partir de su id: `producto.php?id=1`.
+**4. Cálculo de la compra**
 
-**Variables principales:**
+| Función | Qué recibe | Qué devuelve | Para qué sirve |
+|---|---|---|---|
+| `calcularCompra(int $precio, int $unidades)` | Precio de 1 unidad (céntimos) y unidades | `array` | Calcula los importes de la compra, todos en céntimos. |
 
-- `$idBruto`: el `id` tal cual llega por la URL (`$_GET["id"]`).
-- `$id`: ese valor validado como entero con `filter_var(..., FILTER_VALIDATE_INT)`.
-- `$producto`: el producto encontrado, o `null`.
-- `$error`: mensaje de error si algo falla.
+`calcularCompra()` devuelve un array asociativo y sigue estos pasos:
 
-**Qué hace:**
+```
+subtotal  = precio × unidades
+descuento = 10 % del subtotal, solo si unidades >= 5
+base      = subtotal − descuento
+iva       = 21 % de la base
+total     = base + iva
+```
 
-1. Carga `datos.php` y `funciones.php`.
-2. Si el id no es un entero válido (o es menor que 1) → código **400** y mensaje *"El id de producto no es válido"*.
-3. Si es válido, busca el producto con `buscarProductoPorId()`. Si no existe → código **404** y *"El producto no existe"*.
-4. Muestra la ficha: nombre, categoría, precio, stock, estado y botón *Comprar*.
-
-> ⚠️ **Pendiente:** el bloque HTML todavía muestra datos fijos (Teclado mecánico, 79,90 €…) en lugar de usar `$producto` y `$error`. Falta conectarlo para que muestre el producto real.
+Ejemplo: 5 teclados (7990 céntimos cada uno) → subtotal `39950`, descuento `3995`, base `35955`, IVA `7551`, total `43506` (435,06 €).
 
 ---
 
@@ -128,7 +147,29 @@ Muestra el **catálogo** con todos los productos y permite ordenarlos.
 | `index.php?orden=precio` | Por precio |
 | cualquier otro valor | Se vuelve a ordenar por id |
 
-**Qué pinta:** cabecera con menú (Inicio, Buscar, Comprar), enlaces para cambiar el orden y, con un `foreach`, una tarjeta por producto con nombre, categoría, precio (`formatearPrecio`), estado de stock (`obtenerClaseEstado`) y un enlace a `producto.php?id=…`.
+**Qué pinta:** cabecera con menú (Inicio, Buscar, Comprar), enlaces para cambiar el orden y, con un `foreach`, una tarjeta por producto con nombre, categoría, precio, estado de stock y un enlace a `producto.php?id=…`.
+
+---
+
+### `html/producto.php` — ficha de un producto
+
+Página que muestra un producto concreto a partir de su id: `producto.php?id=1`.
+
+**Variables principales:**
+
+- `$idBruto`: el `id` tal cual llega por la URL (`$_GET["id"]`).
+- `$id`: ese valor validado como entero con `filter_var(..., FILTER_VALIDATE_INT)`.
+- `$producto`: el producto encontrado, o `null`.
+- `$error`: mensaje de error si algo falla (`""` si todo va bien).
+
+**Qué hace:**
+
+1. Carga `datos.php` y `funciones.php`.
+2. Si el id no es un entero válido (o es menor que 1) → código **400** y *"El id de producto no es válido"*.
+3. Si es válido, busca el producto con `buscarProductoPorId()`. Si no existe → código **404** y *"El producto no existe"*.
+4. Muestra la ficha: nombre, categoría, precio, stock, estado y botón *Comprar*.
+
+> ⚠️ **Pendiente:** el bloque HTML todavía muestra datos fijos (Teclado mecánico, 79,90 €…) en lugar de usar `$producto` y `$error`.
 
 ---
 
@@ -139,26 +180,47 @@ Formulario con un campo `q` que se envía por **GET** a sí mismo (`buscar.php?q
 - Carga `datos.php` y `funciones.php` y crea `$resultados = []`.
 - Ahora mismo muestra un resultado de ejemplo fijo.
 
-> ⚠️ **Pendiente:** leer `q` con `leerCadena($_GET, "q")`, llamar a `buscarProductos()` y mostrar los resultados reales. Además, los `require_once` apuntan a `datos.php` y `funciones.php`, que están en `php/`, no en `html/`.
+> ⚠️ **Pendiente:** leer `q` con `leerCadena($_GET, "q")`, llamar a `buscarProductos()` y mostrar los resultados reales con un `foreach`.
 
 ---
 
 ### `html/compra.php` — formulario de compra
 
-Formulario enviado por **POST** con estos campos:
+Formulario enviado por **POST** a sí mismo.
 
 | Campo | Tipo | Descripción |
 |---|---|---|
-| `nombre` | texto | Nombre del cliente. |
-| `email` | email | Correo del cliente. |
-| `producto` | select | Producto a comprar (ids 1–4). |
-| `unidades` | número | Cantidad (mínimo 1). |
+| `nombre` | texto | Nombre del cliente. No puede estar vacío. |
+| `email` | email | Correo del cliente. Se valida con `FILTER_VALIDATE_EMAIL`. |
+| `producto` | select | Producto a comprar. Sus opciones salen de `$productos`. |
+| `unidades` | número | Cantidad (entero mayor que 0). |
 
-> ⚠️ **Pendiente:** es solo HTML; todavía no hay código PHP que valide ni procese la compra. Aquí se usarían `IVA_GENERAL`, `UNIDADES_DESCUENTO` y `DESCUENTO_CANTIDAD`. El selector incluye 4 productos (con *Monitor* y *Auriculares*) que no coinciden del todo con `$productos`.
+**Flujo:**
+
+```
+GET  → se muestra el formulario vacío
+POST → leer datos → validar → ¿hay errores?
+                                 ├─ sí → se guardan en $errores
+                                 └─ no → calcularCompra() → $resultadoCompra
+```
+
+**Validaciones**, en este orden: nombre, email, producto (id válido y existente), unidades y stock suficiente. Cada fallo añade un mensaje al array `$errores`.
+
+**Variables que deja preparadas para el HTML:**
+
+| Variable | Qué contiene |
+|---|---|
+| `$errores` | Lista de mensajes de error (`[]` = todo bien). |
+| `$compraRealizada` | `true` si la compra se ha calculado. |
+| `$resultadoCompra` | `subtotal`, `descuento`, `base`, `iva` y `total`, en céntimos. |
+| `$productoSeleccionado` | El producto elegido, o `null`. |
+| `$nombre`, `$email`, `$unidades`, `$productoId` | Lo que escribió el usuario, para rellenar de nuevo el formulario. |
+
+> ⚠️ **Pendiente:** mostrar la lista de `$errores` y, si `$compraRealizada` es `true`, el resumen con `$resultadoCompra` (importes con `formatearPrecio()`).
 
 ---
 
-### `css/estilos.css` — estilos
+### `html/css/estilos.css` — estilos
 
 Hoja de estilos común a todas las páginas. Clases principales:
 
@@ -169,7 +231,7 @@ Hoja de estilos común a todas las páginas. Clases principales:
 | `.panel` | Caja con fondo para secciones. |
 | `.grid-productos`, `.producto` | Cuadrícula y tarjetas de productos. |
 | `.precio` | Estilo del precio. |
-| `.estado`, `.disponible`, `.aviso`, `.agotado` | Etiquetas de stock (verde / aviso / rojo). |
+| `.estado`, `.disponible`, `.aviso`, `.agotado` | Etiqueta de stock (verde / naranja / rojo). |
 | `.boton`, `.acciones` | Botones y su contenedor. |
 | `.formulario`, `.campo` | Formularios. |
 | `.resumen` | Tabla de resumen. |
@@ -179,11 +241,14 @@ Hoja de estilos común a todas las páginas. Clases principales:
 
 ## Conceptos de PHP que se practican
 
-- `require_once` para reutilizar archivos.
+- `require_once` y `__DIR__` para reutilizar archivos con rutas fiables.
 - Constantes (`const`) y variables (`$`).
 - Arrays asociativos y arrays de arrays.
 - Funciones con tipos (`int`, `string`, `array`, `?array`).
 - `foreach`, `if / elseif / else`, `usort`.
-- Lectura de `$_GET` y validación con `filter_var`.
+- Lectura de `$_GET` y `$_POST` y validación con `filter_var`.
+- Operador `??` y comparación estricta `===`.
 - Códigos HTTP (`http_response_code`).
+- Escapar la salida con `htmlspecialchars` (XSS).
 - Etiqueta corta `<?= ... ?>` para imprimir en HTML.
+- Acumular errores en un array y decidir qué mostrar según el resultado.

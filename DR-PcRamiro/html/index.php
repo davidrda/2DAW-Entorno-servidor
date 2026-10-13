@@ -1,20 +1,29 @@
 <?php
 
+// Página principal: catálogo de productos que se puede ordenar.
+// Se usa así: index.php?orden=id | nombre | precio
+//
+// Pasos:
+//   1. Cargar datos y funciones
+//   2. Leer el criterio de orden de la URL
+//   3. Ordenar una copia de los productos
+//   4. Pintar una tarjeta por producto (HTML de abajo)
+
+// __DIR__ es la carpeta de este archivo, así la ruta no depende de dónde se ejecute.
 require_once __DIR__ . "/../php/funciones.php";
 require_once __DIR__ . "/../php/datos.php";
 
-// Criterio de orden por GET: index.php?orden=nombre|precio|id
-// Dato del usuario → lo leemos con leerCadena(), nunca con $_GET directo
+// 2. Dato del usuario → lo leemos con leerCadena(), nunca con $_GET directo
 $orden = leerCadena($_GET, "orden");
 
 if ($orden === "") {
     $orden = "id"; // orden por defecto
 }
 
-// Ordenamos una copia para no tocar los datos originales
+// 3. Ordenamos una copia para no tocar los datos originales
 $productosOrdenados = $productos;
 
-// usort() ordena con nuestra función de comparación.
+// usort() ordena con la función de comparación que le pasamos.
 // <=> devuelve negativo / 0 / positivo según $a sea menor / igual / mayor que $b
 if ($orden === "nombre") {
 
@@ -38,7 +47,7 @@ if ($orden === "nombre") {
     });
 }
 
-// Ojo: abajo se recorre $productosOrdenados, no $productos
+// Ojo: el HTML recorre $productosOrdenados, no $productos
 
 ?>
 
@@ -68,6 +77,7 @@ if ($orden === "nombre") {
 <body>
 
 
+<!-- Cabecera con el menú -->
 <header class="cabecera">
 
     <div class="contenedor">
@@ -99,6 +109,7 @@ if ($orden === "nombre") {
 
 <main class="contenedor">
 
+    <!-- Enlaces para cambiar el orden (recargan la página con ?orden=...) -->
     <section class="panel">
 
         <h2>Catálogo</h2>
@@ -112,10 +123,11 @@ if ($orden === "nombre") {
     </section>
 
 
+    <!-- Catálogo: una tarjeta por cada producto -->
     <section class="grid-productos">
 
         <?php
-        // Un <article> por cada producto
+        // foreach repite el bloque HTML de abajo una vez por producto
         foreach ($productosOrdenados as $producto) {
         ?>
 
@@ -139,7 +151,8 @@ if ($orden === "nombre") {
                     <?= $producto["stock"] ?>
                 </p>
 
-                <!-- La clase CSS (agotado/aviso/disponible) depende del stock -->
+                <!-- PHP solo escribe el nombre de la clase (agotado/aviso/disponible);
+                     el color lo pone el CSS -->
                 <p class="estado <?= obtenerClaseEstado($producto["stock"]); ?>">
 
                     Estado:
@@ -161,6 +174,7 @@ if ($orden === "nombre") {
 </main>
 
 
+<!-- Pie de página -->
 <footer class="pie">
 
     <div class="contenedor">

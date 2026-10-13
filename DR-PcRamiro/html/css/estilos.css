@@ -1,7 +1,19 @@
 /* ==========================================================================
-   DWES STORE — CSS para la versión estática
+   DWES STORE — estilos comunes de todas las páginas
+
+   Contenido:
+     1. Variables y base
+     2. Estructura (contenedor, cabecera, menú, paneles, pie)
+     3. Productos y estado del stock
+     4. Botones y formularios
+     5. Tabla de resumen
+     6. Adaptación a móvil
    ========================================================================== */
 
+
+/* ---------- 1. Variables y base ---------- */
+
+/* Colores y medidas en un solo sitio: se usan con var(--nombre) */
 :root {
     --color-fondo: #f5f7fb;
     --color-superficie: #ffffff;
@@ -17,6 +29,7 @@
     --radio: 14px;
 }
 
+/* El padding y el borde cuentan dentro del ancho de cada caja */
 * {
     box-sizing: border-box;
 }
@@ -38,6 +51,10 @@ a:hover {
     text-decoration: underline;
 }
 
+
+/* ---------- 2. Estructura ---------- */
+
+/* Centra el contenido y limita su ancho a 1100px */
 .contenedor {
     width: min(1100px, calc(100% - 32px));
     margin: 0 auto;
@@ -62,6 +79,7 @@ a:hover {
     color: var(--color-secundario);
 }
 
+/* Menú de enlaces: se colocan en fila y saltan de línea si no caben */
 .navegacion {
     display: flex;
     flex-wrap: wrap;
@@ -81,6 +99,7 @@ main {
     padding-bottom: 50px;
 }
 
+/* Caja blanca con sombra para agrupar una sección */
 .panel {
     background: var(--color-superficie);
     border: 1px solid var(--color-borde);
@@ -90,6 +109,17 @@ main {
     margin-bottom: 22px;
 }
 
+.pie {
+    border-top: 1px solid var(--color-borde);
+    background: var(--color-superficie);
+    color: var(--color-secundario);
+    padding: 22px 0;
+}
+
+
+/* ---------- 3. Productos y estado del stock ---------- */
+
+/* Cuadrícula: tantas columnas de mínimo 230px como quepan */
 .grid-productos {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -114,6 +144,8 @@ main {
     font-weight: bold;
 }
 
+/* Etiqueta redondeada del estado. PHP le añade además una de estas 3 clases:
+   disponible, aviso o agotado (la elige obtenerClaseEstado() según el stock) */
 .estado {
     display: inline-block;
     padding: 4px 9px;
@@ -133,10 +165,14 @@ main {
     color: var(--color-error);
 }
 
+
+/* ---------- 4. Botones y formularios ---------- */
+
 .acciones {
     margin-top: 16px;
 }
 
+/* Los enlaces con clase "boton" y los <button> comparten el mismo aspecto */
 .boton,
 button {
     display: inline-block;
@@ -155,11 +191,13 @@ button:hover {
     text-decoration: none;
 }
 
+/* Los campos se apilan uno debajo de otro */
 .formulario {
     display: grid;
     gap: 16px;
 }
 
+/* Un campo = su etiqueta (label) + su input */
 .campo {
     display: grid;
     gap: 6px;
@@ -179,11 +217,15 @@ select {
     font: inherit;
 }
 
+/* Resalta el campo en el que se está escribiendo */
 input:focus,
 select:focus {
     outline: 2px solid rgba(36, 87, 214, 0.25);
     border-color: var(--color-principal);
 }
+
+
+/* ---------- 5. Tabla de resumen ---------- */
 
 .resumen {
     width: 100%;
@@ -201,13 +243,10 @@ select:focus {
     width: 40%;
 }
 
-.pie {
-    border-top: 1px solid var(--color-borde);
-    background: var(--color-superficie);
-    color: var(--color-secundario);
-    padding: 22px 0;
-}
 
+/* ---------- 6. Adaptación a móvil ---------- */
+
+/* Pantallas de 600px o menos: márgenes y relleno más pequeños */
 @media (max-width: 600px) {
     .contenedor {
         width: min(100% - 20px, 1100px);

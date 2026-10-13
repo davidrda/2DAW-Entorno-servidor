@@ -1,14 +1,19 @@
 <?php
 
-       require_once __DIR__ . "/../php/datos.php"; 
-       require_once __DIR__ . "/../php/funciones.php"; 
+// Buscador de productos. El formulario envía el texto por GET: buscar.php?q=teclado
+//
+// PENDIENTE (falta conectar la lógica):
+//   1. Leer el texto:  $q = leerCadena($_GET, "q");
+//   2. Buscar:         $resultados = buscarProductos($productos, $q);
+//   3. Pintar $resultados con un foreach (como en index.php)
 
+// datos.php → $productos | funciones.php → leerCadena(), buscarProductos()
+// __DIR__ es la carpeta de este archivo, así la ruta no depende de dónde se ejecute.
+       require_once __DIR__ . "/../php/datos.php";
+       require_once __DIR__ . "/../php/funciones.php";
 
-
-
+       // Aquí irán los productos encontrados (de momento vacío)
        $resultados = [];
-
-      
 
 ?>
 
@@ -24,6 +29,7 @@
 
 <body>
 
+<!-- Cabecera con el menú -->
 <header class="cabecera">
     <div class="contenedor">
         <h1>Buscar productos</h1>
@@ -40,8 +46,9 @@
     <section class="panel">
 
         <!--
-            Este formulario es solamente HTML.
-            Sin PHP no puede procesar realmente la búsqueda.
+            Formulario por GET: al enviarlo, el texto viaja en la URL (?q=...),
+            así el resultado de la búsqueda se puede guardar o compartir como enlace.
+            El name="q" es la clave que se leerá en $_GET["q"].
         -->
         <form class="formulario" action="buscar.php" method="GET">
 
@@ -73,6 +80,7 @@
         </p>
     </section>
 
+    <!-- Resultados: cuando haya PHP, una tarjeta por cada producto de $resultados -->
     <section class="grid-productos">
 
         <article class="producto">

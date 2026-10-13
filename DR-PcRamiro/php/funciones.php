@@ -1,19 +1,34 @@
 <?php
 
-// Recibe el precio en CÉNTIMOS (2999 → "29,99 €")
+// Funciones reutilizables de la tienda (las usan index, producto, buscar y compra).
+// Este archivo solo define funciones: no pinta nada ni lee datos por sí mismo.
+//
+// Contenido:
+//   1. Formato y estado del stock
+//   2. Seguridad y lectura de datos del usuario
+//   3. Búsqueda de productos
+//   4. Cálculo de la compra
+
+
+// ============================================================
+// 1. FORMATO Y ESTADO DEL STOCK
+// ============================================================
+
+// Convierte un precio en céntimos a texto con formato: 2999 → "29,99 €".
 function formatearPrecio(int $centimos): string
 {
     $euros = $centimos / 100;
 
-    // number_format(número, decimales, sep. decimal, sep. miles)
+    // number_format(número, decimales, separador decimal, separador de miles)
     return number_format($euros, 2, ",", ".") . " €";
 }
 
 
-// Texto de stock que ve el usuario: Agotado / Últimas unidades / Disponible
+// Texto del estado de stock que ve el usuario.
+// 0 → "Agotado" | de 1 a 5 → "Últimas unidades" | más de 5 → "Disponible"
 function obtenerEstadoStock(int $stock): string
 {
-    // === compara valor Y tipo
+    // === compara valor y tipo, sin conversiones automáticas
     if ($stock === 0) {
         return "Agotado";
     }
@@ -27,7 +42,8 @@ function obtenerEstadoStock(int $stock): string
 }
 
 
-// Misma lógica que obtenerEstadoStock(), pero devuelve la clase CSS (ver estilos.css)
+// Misma lógica que obtenerEstadoStock(), pero devuelve la clase CSS (ver estilos.css).
+// Así PHP elige el nombre de la clase y el navegador aplica el color.
 function obtenerClaseEstado(int $stock): string
 {
     if ($stock === 0) {
@@ -42,7 +58,12 @@ function obtenerClaseEstado(int $stock): string
 }
 
 
-// Escapa el texto antes de pintarlo en HTML (evita inyección XSS)
+// ============================================================
+// 2. SEGURIDAD Y LECTURA DE DATOS DEL USUARIO
+// ============================================================
+
+// Escapa el texto antes de pintarlo en HTML (evita inyección XSS).
+// Ejemplo: "<script>" se muestra como texto, no se ejecuta.
 function escapar(string $texto): string
 {
     // ENT_QUOTES: convierte comillas simples y dobles
@@ -52,7 +73,27 @@ function escapar(string $texto): string
 }
 
 
-// Devuelve el producto con ese id, o null si no existe (?array = array o null)
+// Lee un texto de un array ($_GET, $_POST...) de forma segura.
+// Devuelve "" si la clave no existe o si el valor no es un string.
+function leerCadena(array $origen, string $clave): string
+{
+    // $a ?? $b → usa $a; si no existe o es null, usa $b (evita warnings)
+    $valor = $origen[$clave] ?? "";
+
+    // El usuario podría mandar un array (?q[]=x): lo descartamos
+    if (!is_string($valor)) {
+        return "";
+    }
+
+    return $valor;
+}
+
+
+// ============================================================
+// 3. BÚSQUEDA DE PRODUCTOS
+// ============================================================
+
+// Devuelve el producto con ese id, o null si no existe (?array = array o null).
 function buscarProductoPorId(array $productos, int $id): ?array
 {
     foreach ($productos as $producto) {
@@ -65,7 +106,7 @@ function buscarProductoPorId(array $productos, int $id): ?array
     return null;
 }
 
-// Prepara un texto para comparar: sin espacios en los extremos y en minúsculas
+// Prepara un texto para compararlo: sin espacios en los extremos y en minúsculas.
 function normalizarTexto(string $texto): string
 {
     $textoNormalizado = trim($texto);
@@ -74,7 +115,7 @@ function normalizarTexto(string $texto): string
     return strtolower($textoNormalizado);
 }
 
-// Devuelve los productos cuyo nombre contiene el texto buscado
+// Devuelve los productos cuyo nombre contiene el texto buscado (sin importar mayúsculas).
 function buscarProductos(array $productos, string $busqueda): array
 {
     $resultados = [];
@@ -87,7 +128,7 @@ function buscarProductos(array $productos, string $busqueda): array
     }
 
     foreach ($productos as $producto) {
-        // Normalizamos también el nombre para que no importen mayúsculas
+        // Normalizamos también el nombre para comparar en igualdad de condiciones
         $nombre = normalizarTexto($producto["nombre"]);
 
         if (str_contains($nombre, $busqueda)) {
@@ -99,16 +140,43 @@ function buscarProductos(array $productos, string $busqueda): array
 }
 
 
-// Lee un string de un array ($_GET, $_POST...) de forma segura; "" si no existe o no es string
-function leerCadena(array $origen, string $clave): string
-{
-    // ?? usa "" si la clave no existe o es null (evita warnings)
-    $valor = $origen[$clave] ?? "";
+// ============================================================
+// 4. CÁLCULO DE LA COMPRA
+// ============================================================
 
-    // Descartamos arrays u otros tipos que pueda mandar el usuario
-    if (!is_string($valor)) {
-        return "";
-    }
+// Calcula los importes de una compra. Todo va en céntimos (enteros).
+// Recibe: precio de 1 unidad y número de unidades.
+// Devuelve: ["subtotal", "descuento", "base", "iva", "total"]
+// Necesita las constantes de datos.php (UNIDADES_DESCUENTO, DESCUENTO_CANTIDAD, IVA_GENERAL).
+function calcularCompra(int $precio, int $unidades) : array {
 
-    return $valor;
+        // 1. Precio sin descuentos ni impuestos
+        $subtotal = $precio *  $unidades;
+
+        // 2. Descuento: solo si se llega al mínimo de unidades
+        $descuento = 0;
+
+        if ($unidades >= UNIDADES_DESCUENTO){
+
+            // round() devuelve float; (int) lo convierte otra vez a céntimos enteros
+            $descuento = (int) round($subtotal * DESCUENTO_CANTIDAD);
+        }
+
+        // 3. Base imponible = subtotal con el descuento ya aplicado
+        $base = $subtotal - $descuento;
+
+        // 4. El IVA se calcula sobre la base, no sobre el subtotal
+        $iva = (int) round ($base * IVA_GENERAL);
+
+        // 5. Lo que paga el cliente
+        $total = $base + $iva;
+
+        return [
+            "subtotal" => $subtotal,
+            "descuento" => $descuento,
+            "base" => $base,
+            "iva" => $iva,
+            "total" => $total
+        ];
+
 }

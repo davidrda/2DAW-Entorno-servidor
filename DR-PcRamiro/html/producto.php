@@ -1,51 +1,46 @@
 <?php
 
-/*
- * DETALLE DE UN PRODUCTO
- * Recibe el id por GET (producto.php?id=2), lo valida y muestra la ficha.
- *
- * Flujo:
- *   id inválido (hola, -5)        -> HTTP 400 Bad Request
- *   id válido pero no existe (999) -> HTTP 404 Not Found
- *   id válido y existe             -> se muestra el producto
- */
+// Detalle de un producto. Se usa así: producto.php?id=2
+//
+// Pasos:
+//   1. Leer el id de la URL
+//   2. Validarlo: si no es un entero ≥ 1 → error 400 (petición incorrecta)
+//   3. Buscarlo:  si no existe           → error 404 (no encontrado)
+//   4. Si todo va bien, $producto tiene el producto y $error está vacío
 
-// datos.php: array $productos | funciones.php: buscarProductoPorId(), escapar()...
-// require_once: son imprescindibles y solo se cargan una vez.
-require_once "datos.php";
-require_once "funciones.php";
+// Cargamos lo que necesitamos (parecido a un import en Java).
+// __DIR__ es la carpeta de este archivo, así la ruta no depende de dónde se ejecute.
+require_once __DIR__ . "/../php/datos.php";      // $productos
+require_once __DIR__ . "/../php/funciones.php";  // buscarProductoPorId()
 
-// Dato externo sin validar (por eso "bruto"). ?? evita error si no existe "id".
+// 1. El id llega por la URL siempre como texto, aunque sea "2".
+//    El "?? ''" evita un aviso de PHP si la URL no trae ningún id.
 $idBruto = $_GET["id"] ?? "";
 
-// Devuelve un int si es un entero válido, o false si no lo es.
+// 2. Intentamos convertirlo a entero: "2" → 2 | "hola" → false
 $id = filter_var($idBruto, FILTER_VALIDATE_INT);
 
-$producto = null; // null = todavía no hay producto
-$error = "";      // vacío = todavía no hay error
+$producto = null;  // el producto, si existe
+$error = "";       // mensaje de error ("" = todo bien)
 
-// Inválido: no es un entero o es menor que 1.
+// Usamos === porque con == el 0 también se consideraría "false"
 if ($id === false || $id < 1) {
-
-    http_response_code(400); // Bad Request
+    // El id no tiene sentido → 400
+    http_response_code(400);
     $error = "El id de producto no es válido";
 
 } else {
-
-    // Devuelve un array si lo encuentra, o null si no existe.
+    // 3. El id es correcto: buscamos el producto (devuelve el producto o null)
     $producto = buscarProductoPorId($productos, $id);
 
-    // ID con formato válido, pero sin producto asociado.
     if ($producto === null) {
-
-        http_response_code(404); // Not Found
+        // El id es válido pero no hay producto con ese id → 404
+        http_response_code(404);
         $error = "El producto no existe";
     }
 }
 
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="es">
@@ -53,11 +48,12 @@ if ($id === false || $id < 1) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Producto - DWES Store</title>
-    <link rel="stylesheet" href="estilos.css">
+    <link rel="stylesheet" href="css/estilos.css">
 </head>
 
 <body>
 
+<!-- Cabecera con el menú -->
 <header class="cabecera">
     <div class="contenedor">
         <h1>DWES Store</h1>
@@ -69,81 +65,38 @@ if ($id === false || $id < 1) {
         </nav>
     </div>
 </header>
+
 <main class="contenedor">
 
     <?php
-    /*
-     * Solo se muestra uno de los dos bloques: error o producto.
-     * Usamos la sintaxis alternativa (if: / else: / endif;), más cómoda
-     * al mezclar PHP con HTML.
-     */
+    // PENDIENTE: estos datos están escritos a mano, no salen de $producto.
+    //   - Si $error no está vacío → mostrar el error (con escapar()) y un enlace para volver.
+    //   - Si no → pintar $producto["nombre"], ["categoria"], ["precio"] y ["stock"]:
+    //     texto con escapar(), precio con formatearPrecio(), estado con
+    //     obtenerClaseEstado() y obtenerEstadoStock().
     ?>
+    <article class="producto">
 
-    <?php if ($error !== ""): ?>
+        <h2>Teclado mecánico</h2>
 
-        <!-- CASO 1: hay un error -->
-        <section class="panel">
+        <p>Categoría: Periféricos</p>
 
-            <h2>Error</h2>
+        <p class="precio">79,90 €</p>
 
-            <?php
-            // <?= es la forma corta de echo. Escapamos el texto al sacarlo al HTML
-            // (validar al entrar, escapar al salir).
-            ?>
-            <p><?= escapar($error) ?></p>
+        <p>Stock: 7</p>
 
-            <a class="boton" href="index.php">Volver</a>
+        <p>
+            Estado:
+            <span class="estado disponible">Disponible</span>
+        </p>
 
-        </section>
+        <div class="acciones">
+            <a class="boton" href="compra.php">
+                Comprar
+            </a>
+        </div>
 
-
-    <?php else: ?>
-
-        <!-- CASO 2: sin error, $producto existe -->
-        <article class="producto">
-
-            <?php
-            // Nombre y categoría son texto dinámico: se escapan para que
-            // algo como "Teclado <Pro>" no se interprete como etiqueta HTML.
-            ?>
-            <h2><?= escapar($producto["nombre"]) ?></h2>
-
-            <p>
-                Categoría: <?= escapar($producto["categoria"]) ?>
-            </p>
-
-            <?php
-            // El precio se guarda en céntimos (7990); formatearPrecio() lo muestra como "79,90 €".
-            ?>
-            <p class="precio">
-                <?= formatearPrecio($producto["precio"]) ?>
-            </p>
-
-            <?php
-            // El stock es un número controlado por la app, no hace falta escaparlo.
-            ?>
-            <p>
-                Stock: <?= $producto["stock"] ?>
-            </p>
-
-            <?php
-            /*
-             * PHP no cambia el CSS: solo genera el nombre de la clase
-             * (disponible, aviso...) y el navegador aplica sus estilos.
-             * Texto según stock: 0 "Agotado", 3 "Últimas unidades", 7 "Disponible".
-             */
-            ?>
-            <p class="estado <?= obtenerClaseEstado($producto["stock"]); ?>">
-
-                Estado:
-
-                <?= obtenerEstadoStock($producto["stock"]); ?>
-
-            </p>
-
-        </article>
-
-    <?php endif; ?>
+    </article>
 
 </main>
 
