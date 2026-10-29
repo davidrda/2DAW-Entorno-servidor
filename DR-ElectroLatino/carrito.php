@@ -26,58 +26,81 @@ cabecera('Tu carrito');
 
 <?php else: ?>
 
-    <?php
-    // ACTIVIDAD 1 (pendiente): <div class="panel"> con una <table>.
-    // <thead> con 5 columnas (Producto, Precio, Cantidad, Subtotal, Acción);
-    // <tbody> con las filas, que se generan con PHP (actividad 2).
-    ?>
+    <div class="panel">
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Precio</th>
+                    <th>Cantidad</th>
+                    <th>Subtotal</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php // Una fila <tr> por cada producto: clave = ID, valor = cantidad ?>
+                <?php foreach ($_SESSION['carrito'] as $id => $cantidad): ?>
 
-    <?php
-    // ACTIVIDAD 2 (pendiente): foreach ($_SESSION['carrito'] as $id => $cantidad)
-    // con sintaxis alternativa (foreach (...): ... endforeach;), que es la que se usa
-    // para mezclar PHP con HTML. Genera una <tr> por producto.
-    // En el foreach la clave es el ID del producto y el valor, la cantidad.
-    ?>
+                    <?php
+                    // Si el ID ya no está en el catálogo (sesión antigua o dato manipulado),
+                    // continue salta a la siguiente vuelta y no se pinta fila.
+                    if (!isset($productos[$id])) continue;
 
-    <?php
-    // ACTIVIDAD 3 (pendiente): el ID del carrito podría no existir en el catálogo
-    // (sesión antigua o dato manipulado). Si !isset($productos[$id]) -> continue;
-    // que salta a la siguiente vuelta. Si existe, guardar $productos[$id] en $producto.
-    ?>
+                    // Nombre y precio salen del catálogo del servidor, nunca del navegador
+                    $producto = $productos[$id];
+                    ?>
 
-    <?php
-    // ACTIVIDAD 4 (pendiente): una <td> por dato: nombre, precio con euros() y cantidad.
-    // Todo texto se imprime con e(), y los importes con euros().
-    ?>
+                    <tr>
+                        <td><?= e($producto['nombre']) ?></td>
+                        <td><?= euros($producto['precio']) ?></td>
 
-    <?php
-    // ACTIVIDAD 5 (pendiente): subtotal = $producto['precio'] * (int) $cantidad,
-    // mostrado con euros(). Ej.: 20 € x 3 unidades = 60 €.
-    ?>
+                        <td>
+                            <?php // Un formulario por fila: así el POST lleva el producto_id correcto ?>
+                            <form action="actualizar.php" method="post" class="en-linea">
+                                <?= campoCsrf() ?>
+                                <input type="hidden" name="producto_id" value="<?= (int)$id ?>">
+                                <?php // min/max solo ayudan al usuario: actualizar.php debe validarlos otra vez ?>
+                                <input
+                                    type="number"
+                                    name="cantidad"
+                                    value="<?= (int)$cantidad ?>"
+                                    min="0"
+                                    max="99"
+                                    aria-label="Cantidad de <?= e($producto['nombre']) ?>"
+                                >
+                                <button type="submit">Actualizar</button>
+                            </form>
+                        </td>
 
-    <?php
-    // ACTIVIDAD 6 (pendiente): en la columna Cantidad, un formulario POST a actualizar.php
-    // con campoCsrf(), producto_id oculto, <input type="number" name="cantidad" min="0" max="99">
-    // (valor inicial: la cantidad actual) y un botón "Actualizar".
-    // Este formulario solo envía datos; la sesión se modifica en actualizar.php.
-    ?>
+                        <?php // Subtotal = precio * unidades; (int) asegura que la cantidad es un número ?>
+                        <td><?= euros($producto['precio'] * (int)$cantidad) ?></td>
 
-    <?php
-    // ACTIVIDAD 7 (pendiente): otro formulario POST a eliminar.php con campoCsrf(),
-    // producto_id oculto y botón "Eliminar" (clase "peligro").
-    // Hace falta enviar el ID porque el servidor no sabe en qué fila se pulsó.
-    // No se borra aquí: carrito.php solo muestra, el cambio lo hace eliminar.php.
-    ?>
+                        <td>
+                            <?php // Solo envía el ID: quien borra es eliminar.php, no esta página ?>
+                            <form action="eliminar.php" method="post">
+                                <?= campoCsrf() ?>
+                                <input type="hidden" name="producto_id" value="<?= (int)$id ?>">
+                                <button type="submit" class="peligro">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
 
-    <?php
-    // ACTIVIDAD 8 (pendiente): <p class="total"> con "Total:" y euros(totalCarrito($productos)).
-    // Calcularlo en una función evita repetir el cálculo en cada página y los errores
-    // de tener varias copias (es como un método reutilizable en Java).
-    ?>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
 
-    <?php
-    // ACTIVIDAD 9 (pendiente): formulario POST a vaciar.php con campoCsrf() y botón
-    // "Vaciar carrito" (clase "secundario"). No lleva producto_id porque afecta a todo el carrito.
-    ?>
+        <?php // Ahora muestra 0,00 € porque totalCarrito() aún es un TODO (funciones.php) ?>
+        <p class="total">
+            Total:
+            <?= euros(totalCarrito($productos)) ?>
+        </p>
+
+        <?php // Sin producto_id: vaciar afecta a todo el carrito ?>
+        <form action="vaciar.php" method="post">
+            <?= campoCsrf() ?>
+            <button type="submit" class="secundario">Vaciar carrito</button>
+        </form>
+    </div>
+
 <?php endif; ?>
 <?php pie(); ?>

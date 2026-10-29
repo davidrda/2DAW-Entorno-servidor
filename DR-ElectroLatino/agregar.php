@@ -21,7 +21,7 @@ if ($id === false || $id === null || !isset($productos[$id])) {
     exit('Producto no válido.');
 }
 
-// ?? 0 : si el producto aún no está en el carrito, parte de 0 unidades
+// '??' 0 : si el producto aún no está en el carrito, parte de 0 unidades
 $actual = (int) ( $_SESSION['carrito'][$id] ?? 0 );
 
 // min() pone un tope de 99 unidades por producto
